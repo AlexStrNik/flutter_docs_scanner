@@ -69,6 +69,6 @@ class _ScannerPageState extends State<ScannerPage> {
 
 ## ToDo:
 
-- [] Lock focus on document.
-- [] Color/gamma enchantments.
-- [] Better perspective correction using camera lens info.
+- [ ] Lock focus on document.
+- [ ] Color/gamma enchantments.
+- [ ] Better perspective correction using camera lens info.
