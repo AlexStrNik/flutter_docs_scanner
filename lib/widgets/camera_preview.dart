@@ -6,12 +6,15 @@ import 'package:flutter_docs_scanner/scanner.dart';
 import 'package:flutter_docs_scanner/scanner_controller.dart';
 import 'package:flutter_docs_scanner/widgets/doc_overlay.dart';
 
+/// Ready-to-use widget for displaying camera preview and process images using controller.
 class ScannerPreview extends StatefulWidget {
+  /// Creates ScannerPreview.
   const ScannerPreview({
     super.key,
     this.controller,
   });
 
+  /// Pass controller to be able take shots.
   final ScannerController? controller;
 
   @override

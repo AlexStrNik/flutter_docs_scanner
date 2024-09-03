@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_docs_scanner/scanner.dart';
 
+/// Helper widget for displaying rectangle over recognized document.
 class DocOverlayWidget extends StatefulWidget {
   final Stream<Rectangle?> stream;
 
@@ -40,6 +41,7 @@ class _DocOverlayWidgetState extends State<DocOverlayWidget> {
   }
 }
 
+/// Helper widget for displaying rectangle over recognized document.
 class ShapesPainter extends CustomPainter {
   ValueNotifier<Rectangle?> notifier;
   Paint circlePaint = Paint()

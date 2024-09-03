@@ -8,12 +8,14 @@ import 'package:flutter_docs_scanner/extensions.dart';
 import 'package:flutter_docs_scanner/ffi.dart';
 import 'package:flutter_docs_scanner/models/image.dart';
 
-final _init = sdkNative.lookupFunction<_InitDetectorNative, _InitDetector>('initScanner');
+final _init =
+    sdkNative.lookupFunction<_InitDetectorNative, _InitDetector>('initScanner');
 
 typedef _InitDetectorNative = Pointer<NativeType> Function();
 typedef _InitDetector = Pointer<NativeType> Function();
 
-final _deinit = sdkNative.lookupFunction<_DeinitDetectorNative, _DeinitDetector>('deinitScanner');
+final _deinit = sdkNative
+    .lookupFunction<_DeinitDetectorNative, _DeinitDetector>('deinitScanner');
 
 typedef _DeinitDetectorNative = Void Function(Pointer<NativeType>);
 typedef _DeinitDetector = void Function(Pointer<NativeType>);
@@ -32,41 +34,51 @@ final class _RectangleNative extends Struct {
   external _PointNative d;
 }
 
+/// Area recognized as document.
 final class Rectangle {
+  /// Four frame relative points in order TL, TR, BR, BL.
   List<Point<double>> points;
 
+  /// Constructs rectangle.
   Rectangle(this.points);
 }
 
+/// Wrapper around native Scanner.
 class FlutterDocsScanner {
-  Pointer<NativeType> scanner = nullptr;
+  Pointer<NativeType> _scanner = nullptr;
 
+  /// Does nothing.
   FlutterDocsScanner();
 
+  /// Initializing native scanner.
   Future<void> init() async {
     dispose(); //dispose if there was any native scanner inited
-    scanner = _init();
+    _scanner = _init();
     return;
   }
 
+  /// Disposing native scanner.
   dispose() {
-    if (scanner != nullptr) {
-      _deinit(scanner);
-      scanner = nullptr;
+    if (_scanner != nullptr) {
+      _deinit(_scanner);
+      _scanner = nullptr;
     }
   }
 
+  /// Should called each frame, returns rectangle of recognized doc if any.
   Future<Rectangle?> processFrame(CameraImage image, int rotation) async {
     //some checks to ignore problems with flutter camera plugin
-    if (!image.isEmpty() && scanner != nullptr) {
-      return compute(_processFrameAsync, _FrameData(scanner.address, image, rotation));
+    if (!image.isEmpty() && _scanner != nullptr) {
+      return compute(
+          _processFrameAsync, _FrameData(_scanner.address, image, rotation));
     } else {
       return null;
     }
   }
 
+  /// Processes taken image and returns new one – cropped and with corrected perspective.
   Future<SdkImage> processImage(XFile image) async {
-    return compute(_processImageAsync, _ImageData(scanner.address, image));
+    return compute(_processImageAsync, _ImageData(_scanner.address, image));
   }
 }
 
@@ -85,10 +97,13 @@ class _ImageData {
   _ImageData(this.scanner, this.image);
 }
 
-final _processFrame = sdkNative.lookupFunction<_ProcessFrameNative, _ProcessFrame>('processFrame');
+final _processFrame = sdkNative
+    .lookupFunction<_ProcessFrameNative, _ProcessFrame>('processFrame');
 
-typedef _ProcessFrameNative = Pointer<_RectangleNative> Function(Pointer<NativeType>, Pointer<SdkFrame>);
-typedef _ProcessFrame = Pointer<_RectangleNative> Function(Pointer<NativeType>, Pointer<SdkFrame>);
+typedef _ProcessFrameNative = Pointer<_RectangleNative> Function(
+    Pointer<NativeType>, Pointer<SdkFrame>);
+typedef _ProcessFrame = Pointer<_RectangleNative> Function(
+    Pointer<NativeType>, Pointer<SdkFrame>);
 
 Future<Rectangle?> _processFrameAsync(_FrameData detect) async {
   try {
@@ -119,10 +134,13 @@ Future<Rectangle?> _processFrameAsync(_FrameData detect) async {
   return null;
 }
 
-final _processImage = sdkNative.lookupFunction<_ProcessImageNative, _ProcessImage>('processImage');
+final _processImage = sdkNative
+    .lookupFunction<_ProcessImageNative, _ProcessImage>('processImage');
 
-typedef _ProcessImageNative = Pointer<SdkImage> Function(Pointer<NativeType>, Pointer<SdkImage>);
-typedef _ProcessImage = Pointer<SdkImage> Function(Pointer<NativeType>, Pointer<SdkImage>);
+typedef _ProcessImageNative = Pointer<SdkImage> Function(
+    Pointer<NativeType>, Pointer<SdkImage>);
+typedef _ProcessImage = Pointer<SdkImage> Function(
+    Pointer<NativeType>, Pointer<SdkImage>);
 
 Future<SdkImage> _processImageAsync(_ImageData detect) async {
   final scanner = Pointer.fromAddress(detect.scanner);

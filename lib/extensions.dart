@@ -144,7 +144,8 @@ extension ByteDataToFile on ByteData {
 
 extension CameraControllerExtention on CameraController {
   bool isLandscape() {
-    return [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight].contains(_getApplicableOrientation());
+    return [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
+        .contains(_getApplicableOrientation());
   }
 
   int getImageRotation() {
@@ -160,6 +161,8 @@ extension CameraControllerExtention on CameraController {
   DeviceOrientation _getApplicableOrientation() {
     return value.isRecordingVideo
         ? value.recordingOrientation!
-        : (value.previewPauseOrientation ?? value.lockedCaptureOrientation ?? value.deviceOrientation);
+        : (value.previewPauseOrientation ??
+            value.lockedCaptureOrientation ??
+            value.deviceOrientation);
   }
 }
