@@ -1,0 +1,55 @@
+// The Android Gradle Plugin builds the native code with the Android NDK.
+
+group = "xyz.alexstrnik.flutter_docs_scanner"
+version = "1.0"
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        // The Android Gradle Plugin knows how to build native code with the NDK.
+        classpath("com.android.tools.build:gradle:7.3.0")
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: "com.android.library"
+
+android {
+    if (project.android.hasProperty("namespace")) {
+        namespace = "xyz.alexstrnik.flutter_docs_scanner"
+    }
+    compileSdk = 34
+
+    ndkVersion = android.ndkVersion
+
+    externalNativeBuild {
+        cmake {
+            path = "../src/CMakeLists.txt"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        minSdk = 21
+        externalNativeBuild {
+            cmake {
+                cppFlags '-frtti -fexceptions -std=c++11'
+                arguments "-DANDROID_STL=c++_shared"
+            }
+        }
+    }
+}
