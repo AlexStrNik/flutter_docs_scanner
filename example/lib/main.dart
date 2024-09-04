@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_docs_scanner/flutter_docs_scanner.dart';
-import 'package:flutter_docs_scanner/scanner_controller.dart';
 
 void main() {
   runApp(const MyApp());
