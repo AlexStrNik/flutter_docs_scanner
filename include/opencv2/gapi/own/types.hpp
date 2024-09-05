@@ -15,11 +15,6 @@ namespace cv
 {
 namespace gapi
 {
-
-/**
- * @brief This namespace contains G-API own data structures used in
- * its standalone mode build.
- */
 namespace own
 {
 
@@ -31,16 +26,6 @@ public:
 
     int x = 0;
     int y = 0;
-};
-
-class Point2f
-{
-public:
-    Point2f() = default;
-    Point2f(float _x, float _y) : x(_x),  y(_y)  {};
-
-    float x = 0.f;
-    float y = 0.f;
 };
 
 class Rect

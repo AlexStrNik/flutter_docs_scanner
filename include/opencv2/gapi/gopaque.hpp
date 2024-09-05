@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://opencv.org/license.html.
 //
-// Copyright (C) 2019-2020 Intel Corporation
+// Copyright (C) 2019 Intel Corporation
 
 
 #ifndef OPENCV_GAPI_GOPAQUE_HPP
@@ -15,14 +15,9 @@
 #include <opencv2/gapi/own/exports.hpp>
 #include <opencv2/gapi/opencv_includes.hpp>
 
-#include <opencv2/gapi/util/any.hpp>
 #include <opencv2/gapi/util/variant.hpp>
 #include <opencv2/gapi/util/throw.hpp>
-#include <opencv2/gapi/util/type_traits.hpp>
 #include <opencv2/gapi/own/assert.hpp>
-
-#include <opencv2/gapi/gcommon.hpp>  // OpaqueKind
-#include <opencv2/gapi/garray.hpp>  // TypeHintBase
 
 namespace cv
 {
@@ -30,20 +25,21 @@ namespace cv
 // (user-inaccessible) classes.
 class GNode;
 struct GOrigin;
+
 template<typename T> class GOpaque;
 
 /**
  * \addtogroup gapi_meta_args
  * @{
  */
-struct GAPI_EXPORTS_W_SIMPLE GOpaqueDesc
+struct GOpaqueDesc
 {
     // FIXME: Body
     // FIXME: Also implement proper operator== then
     bool operator== (const GOpaqueDesc&) const { return true; }
 };
 template<typename U> GOpaqueDesc descr_of(const U &) { return {};}
-GAPI_EXPORTS_W inline GOpaqueDesc empty_gopaque_desc() {return {}; }
+static inline GOpaqueDesc empty_gopaque_desc() {return {}; }
 /** @} */
 
 std::ostream& operator<<(std::ostream& os, const cv::GOpaqueDesc &desc);
@@ -84,11 +80,6 @@ namespace detail
         template <typename T>
         void specifyType();                       // Store type of initial GOpaque<T>
 
-        template <typename T>
-        void storeKind();
-
-        void setKind(cv::detail::OpaqueKind);
-
         std::shared_ptr<GOrigin> m_priv;
         std::shared_ptr<TypeHintBase> m_hint;
     };
@@ -96,19 +87,13 @@ namespace detail
     template <typename T>
     bool GOpaqueU::holds() const{
         GAPI_Assert(m_hint != nullptr);
-        using U = util::decay_t<T>;
+        using U = typename std::decay<T>::type;
         return dynamic_cast<TypeHint<U>*>(m_hint.get()) != nullptr;
     };
 
     template <typename T>
     void GOpaqueU::specifyType(){
-        m_hint.reset(new TypeHint<util::decay_t<T>>);
-    };
-
-    template <typename T>
-    void GOpaqueU::storeKind(){
-        // FIXME: Add assert here on cv::Mat and cv::Scalar?
-        setKind(cv::detail::GOpaqueTraits<T>::kind);
+        m_hint.reset(new TypeHint<typename std::decay<T>::type>);
     };
 
     // This class represents a typed object reference.
@@ -122,8 +107,6 @@ namespace detail
         virtual ~BasicOpaqueRef() {}
 
         virtual void mov(BasicOpaqueRef &ref) = 0;
-        virtual const void* ptr() const = 0;
-        virtual void set(const cv::util::any &a) = 0;
     };
 
     template<typename T> class OpaqueRefT final: public BasicOpaqueRef
@@ -215,12 +198,6 @@ namespace detail
             GAPI_Assert(tv != nullptr);
             wref() = std::move(tv->wref());
         }
-
-        virtual const void* ptr() const override { return &rref(); }
-
-        virtual void set(const cv::util::any &a) override {
-            wref() = util::any_cast<T>(a);
-        }
     };
 
     // This class strips type information from OpaqueRefT<> and makes it usable
@@ -232,7 +209,6 @@ namespace detail
     class OpaqueRef
     {
         std::shared_ptr<BasicOpaqueRef> m_ref;
-        cv::detail::OpaqueKind m_kind;
 
         template<typename T> inline void check() const
         {
@@ -242,32 +218,15 @@ namespace detail
     public:
         OpaqueRef() = default;
 
-        template<
-            typename T,
-            typename = util::are_different_t<OpaqueRef, T>
-        >
-        // FIXME: probably won't work with const object
-        explicit OpaqueRef(T&& obj) :
-            m_ref(new OpaqueRefT<util::decay_t<T>>(std::forward<T>(obj))),
-            m_kind(GOpaqueTraits<util::decay_t<T>>::kind) {}
-
-        cv::detail::OpaqueKind getKind() const
-        {
-            return m_kind;
-        }
+        template<typename T> explicit OpaqueRef(T&& obj) :
+            m_ref(new OpaqueRefT<typename std::decay<T>::type>(std::forward<T>(obj))) {}
 
         template<typename T> void reset()
         {
             if (!m_ref) m_ref.reset(new OpaqueRefT<T>());
-            check<T>();
-            storeKind<T>();
-            static_cast<OpaqueRefT<T>&>(*m_ref).reset();
-        }
 
-        template <typename T>
-        void storeKind()
-        {
-            m_kind = cv::detail::GOpaqueTraits<T>::kind;
+            check<T>();
+            static_cast<OpaqueRefT<T>&>(*m_ref).reset();
         }
 
         template<typename T> T& wref()
@@ -291,72 +250,33 @@ namespace detail
         {
             return m_ref->m_desc;
         }
-
-        // May be used to uniquely identify this object internally
-        const void *ptr() const { return m_ref->ptr(); }
-
-        // Introduced for in-graph meta handling
-        OpaqueRef& operator= (const cv::util::any &a)
-        {
-            m_ref->set(a);
-            return *this;
-        }
     };
 } // namespace detail
 
 /** \addtogroup gapi_data_objects
  * @{
  */
-/**
- * @brief `cv::GOpaque<T>` template class represents an object of
- * class `T` in the graph.
- *
- * `cv::GOpaque<T>` describes a functional relationship between operations
- * consuming and producing object of class `T`. `cv::GOpaque<T>` is
- * designed to extend G-API with user-defined data types, which are
- * often required with user-defined operations. G-API can't apply any
- * optimizations to user-defined types since these types are opaque to
- * the framework. However, there is a number of G-API operations
- * declared with `cv::GOpaque<T>` as a return type,
- * e.g. cv::gapi::streaming::timestamp() or cv::gapi::streaming::size().
- *
- * @sa `cv::GArray<T>`
- */
+
 template<typename T> class GOpaque
 {
 public:
-    // Host type (or Flat type) - the type this GOpaque is actually
-    // specified to.
-    /// @private
-    using HT = typename detail::flatten_g<util::decay_t<T>>::type;
-
-    /**
-     * @brief Constructs an empty `cv::GOpaque<T>`
-     *
-     * Normally, empty G-API data objects denote a starting point of
-     * the graph. When an empty `cv::GOpaque<T>` is assigned to a result
-     * of some operation, it obtains a functional link to this
-     * operation (and is not empty anymore).
-     */
     GOpaque() { putDetails(); }              // Empty constructor
-
-    /// @private
     explicit GOpaque(detail::GOpaqueU &&ref) // GOpaqueU-based constructor
         : m_ref(ref) { putDetails(); }       // (used by GCall, not for users)
 
-    /// @private
-    detail::GOpaqueU strip() const {
-        return m_ref;
-    }
-    /// @private
-    static void Ctor(detail::OpaqueRef& ref) {
+    detail::GOpaqueU strip() const { return m_ref; }
+
+private:
+    // Host type (or Flat type) - the type this GOpaque is actually
+    // specified to.
+    using HT = typename detail::flatten_g<typename std::decay<T>::type>::type;
+
+    static void CTor(detail::OpaqueRef& ref) {
         ref.reset<HT>();
     }
-private:
     void putDetails() {
-        m_ref.setConstructFcn(&Ctor);
+        m_ref.setConstructFcn(&CTor);
         m_ref.specifyType<HT>();
-        m_ref.storeKind<HT>();
     }
 
     detail::GOpaqueU m_ref;

@@ -18,7 +18,6 @@
 #include <opencv2/gapi/gscalar.hpp>
 #include <opencv2/gapi/garray.hpp>
 #include <opencv2/gapi/gopaque.hpp>
-#include <opencv2/gapi/gframe.hpp>
 
 namespace cv
 {
@@ -39,7 +38,6 @@ using GMetaArg = util::variant
     , GScalarDesc
     , GArrayDesc
     , GOpaqueDesc
-    , GFrameDesc
     >;
 GAPI_EXPORTS std::ostream& operator<<(std::ostream& os, const GMetaArg &);
 
@@ -68,10 +66,12 @@ namespace detail
 
 // Note: descr_of(std::vector<..>) returns a GArrayDesc, while
 //       descrs_of(std::vector<..>) returns an array of Meta args!
+class Mat;
 class UMat;
 GAPI_EXPORTS cv::GMetaArgs descrs_of(const std::vector<cv::Mat> &vec);
 GAPI_EXPORTS cv::GMetaArgs descrs_of(const std::vector<cv::UMat> &vec);
 namespace gapi { namespace own {
+    class Mat;
     GAPI_EXPORTS cv::GMetaArgs descrs_of(const std::vector<Mat> &vec);
 }} // namespace gapi::own
 

@@ -23,6 +23,7 @@ rootProject.allprojects {
 }
 
 apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
 
 android {
     if (project.android.hasProperty("namespace")) {
@@ -32,9 +33,17 @@ android {
 
     ndkVersion = android.ndkVersion
 
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    sourceSets {
+        main.java.srcDirs += "src/main/kotlin"
+    }
+
     externalNativeBuild {
         cmake {
-            path = "../src/CMakeLists.txt"
+            path = "CMakeLists.txt"
         }
     }
 

@@ -26,7 +26,6 @@ namespace detail
     template<> struct ProtoToParam<cv::GMat>    { using type = cv::Mat; };
     template<> struct ProtoToParam<cv::GScalar> { using type = cv::Scalar; };
     template<typename U> struct ProtoToParam<cv::GArray<U> >  { using type = std::vector<U>; };
-    template<> struct ProtoToParam<cv::GArray<cv::GMat>>      { using type = std::vector<cv::Mat>; };
     template<typename U> struct ProtoToParam<cv::GOpaque<U> > { using type = U; };
     template<typename T> using ProtoToParamT = typename ProtoToParam<T>::type;
 
@@ -35,7 +34,6 @@ namespace detail
     template<> struct ProtoToMeta<cv::GScalar>  { using type = cv::GScalarDesc; };
     template<typename U> struct ProtoToMeta<cv::GArray<U> >  { using type = cv::GArrayDesc; };
     template<typename U> struct ProtoToMeta<cv::GOpaque<U> > { using type = cv::GOpaqueDesc; };
-    template<> struct ProtoToMeta<cv::GFrame>  { using type = cv::GFrameDesc; };
     template<typename T> using ProtoToMetaT = typename ProtoToMeta<T>::type;
 
     //workaround for MSVC 19.0 bug
@@ -135,18 +133,10 @@ public:
     }
 
     void apply(detail::ProtoToParamT<Args>... inArgs,
-               detail::ProtoToParamT<R> &outArg,
-               GCompileArgs &&args)
-    {
-        m_comp.apply(cv::gin(inArgs...), cv::gout(outArg), std::move(args));
-    }
-
-    void apply(detail::ProtoToParamT<Args>... inArgs,
                detail::ProtoToParamT<R> &outArg)
     {
-        apply(inArgs..., outArg, GCompileArgs());
+        m_comp.apply(cv::gin(inArgs...), cv::gout(outArg));
     }
-
 
     GCompiledT compile(detail::ProtoToMetaT<Args>... inDescs)
     {
@@ -216,18 +206,10 @@ public:
     }
 
     void apply(detail::ProtoToParamT<Args>... inArgs,
-               detail::ProtoToParamT<R>&... outArgs,
-               GCompileArgs &&args)
-    {
-        m_comp.apply(cv::gin(inArgs...), cv::gout(outArgs...), std::move(args));
-    }
-
-    void apply(detail::ProtoToParamT<Args>... inArgs,
                detail::ProtoToParamT<R>&... outArgs)
     {
-        apply(inArgs..., outArgs..., GCompileArgs());
+        m_comp.apply(cv::gin(inArgs...), cv::gout(outArgs...));
     }
-
 
     GCompiledT compile(detail::ProtoToMetaT<Args>... inDescs)
     {

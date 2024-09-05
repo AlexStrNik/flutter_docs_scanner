@@ -185,7 +185,6 @@ location of points on the plane, building special graphs (such as NNG,RNG), and 
     @defgroup imgproc_motion Motion Analysis and Object Tracking
     @defgroup imgproc_feature Feature Detection
     @defgroup imgproc_object Object Detection
-    @defgroup imgproc_segmentation Image Segmentation
     @defgroup imgproc_c C API
     @defgroup imgproc_hal Hardware Acceleration Layer
     @{
@@ -231,7 +230,7 @@ enum MorphTypes{
 enum MorphShapes {
     MORPH_RECT    = 0, //!< a rectangular structuring element:  \f[E_{ij}=1\f]
     MORPH_CROSS   = 1, //!< a cross-shaped structuring element:
-                       //!< \f[E_{ij} = \begin{cases} 1 & \texttt{if } {i=\texttt{anchor.y } {or } {j=\texttt{anchor.x}}} \\0 & \texttt{otherwise} \end{cases}\f]
+                       //!< \f[E_{ij} =  \fork{1}{if i=\texttt{anchor.y} or j=\texttt{anchor.x}}{0}{otherwise}\f]
     MORPH_ELLIPSE = 2 //!< an elliptic structuring element, that is, a filled ellipse inscribed
                       //!< into the rectangle Rect(0, 0, esize.width, 0.esize.height)
 };
@@ -257,9 +256,6 @@ enum InterpolationFlags{
     INTER_LANCZOS4       = 4,
     /** Bit exact bilinear interpolation */
     INTER_LINEAR_EXACT = 5,
-    /** Bit exact nearest neighbor interpolation. This will produce same results as
-    the nearest neighbor method in PIL, scikit-image or Matlab. */
-    INTER_NEAREST_EXACT  = 6,
     /** mask for interpolation codes */
     INTER_MAX            = 7,
     /** flag, fills all of the destination image pixels. If some of them correspond to outliers in the
@@ -389,7 +385,7 @@ enum FloodFillFlags {
 //! @addtogroup imgproc_shape
 //! @{
 
-//! connected components statistics
+//! connected components algorithm output formats
 enum ConnectedComponentsTypes {
     CC_STAT_LEFT   = 0, //!< The leftmost (x) coordinate which is the inclusive start of the bounding
                         //!< box in the horizontal direction.
@@ -405,13 +401,9 @@ enum ConnectedComponentsTypes {
 
 //! connected components algorithm
 enum ConnectedComponentsAlgorithmsTypes {
-    CCL_DEFAULT   = -1, //!< BBDT @cite Grana2010 algorithm for 8-way connectivity, SAUF algorithm for 4-way connectivity. The parallel implementation described in @cite Bolelli2017 is available for both BBDT and SAUF.
-    CCL_WU        = 0,  //!< SAUF @cite Wu2009 algorithm for 8-way connectivity, SAUF algorithm for 4-way connectivity. The parallel implementation described in @cite Bolelli2017 is available for SAUF.
-    CCL_GRANA     = 1,  //!< BBDT @cite Grana2010 algorithm for 8-way connectivity, SAUF algorithm for 4-way connectivity. The parallel implementation described in @cite Bolelli2017 is available for both BBDT and SAUF.
-    CCL_BOLELLI   = 2,  //!< Spaghetti @cite Bolelli2019 algorithm for 8-way connectivity, SAUF algorithm for 4-way connectivity.
-    CCL_SAUF      = 3,  //!< Same as CCL_WU. It is preferable to use the flag with the name of the algorithm (CCL_SAUF) rather than the one with the name of the first author (CCL_WU).
-    CCL_BBDT      = 4,  //!< Same as CCL_GRANA. It is preferable to use the flag with the name of the algorithm (CCL_BBDT) rather than the one with the name of the first author (CCL_GRANA).
-    CCL_SPAGHETTI = 5,  //!< Same as CCL_BOLELLI. It is preferable to use the flag with the name of the algorithm (CCL_SPAGHETTI) rather than the one with the name of the first author (CCL_BOLELLI).
+    CCL_WU      = 0,  //!< SAUF algorithm for 8-way connectivity, SAUF algorithm for 4-way connectivity
+    CCL_DEFAULT = -1, //!< BBDT algorithm for 8-way connectivity, SAUF algorithm for 4-way connectivity
+    CCL_GRANA   = 1   //!< BBDT algorithm for 8-way connectivity, SAUF algorithm for 4-way connectivity
 };
 
 //! mode of the contour retrieval algorithm
@@ -591,7 +583,7 @@ enum ColorConversionCodes {
     COLOR_YCrCb2BGR    = 38,
     COLOR_YCrCb2RGB    = 39,
 
-    COLOR_BGR2HSV      = 40, //!< convert RGB/BGR to HSV (hue saturation value) with H range 0..180 if 8 bit image, @ref color_convert_rgb_hsv "color conversions"
+    COLOR_BGR2HSV      = 40, //!< convert RGB/BGR to HSV (hue saturation value), @ref color_convert_rgb_hsv "color conversions"
     COLOR_RGB2HSV      = 41,
 
     COLOR_BGR2Lab      = 44, //!< convert RGB/BGR to CIE Lab, @ref color_convert_rgb_lab "color conversions"
@@ -599,27 +591,27 @@ enum ColorConversionCodes {
 
     COLOR_BGR2Luv      = 50, //!< convert RGB/BGR to CIE Luv, @ref color_convert_rgb_luv "color conversions"
     COLOR_RGB2Luv      = 51,
-    COLOR_BGR2HLS      = 52, //!< convert RGB/BGR to HLS (hue lightness saturation) with H range 0..180 if 8 bit image, @ref color_convert_rgb_hls "color conversions"
+    COLOR_BGR2HLS      = 52, //!< convert RGB/BGR to HLS (hue lightness saturation), @ref color_convert_rgb_hls "color conversions"
     COLOR_RGB2HLS      = 53,
 
-    COLOR_HSV2BGR      = 54, //!< backward conversions HSV to RGB/BGR with H range 0..180 if 8 bit image
+    COLOR_HSV2BGR      = 54, //!< backward conversions to RGB/BGR
     COLOR_HSV2RGB      = 55,
 
     COLOR_Lab2BGR      = 56,
     COLOR_Lab2RGB      = 57,
     COLOR_Luv2BGR      = 58,
     COLOR_Luv2RGB      = 59,
-    COLOR_HLS2BGR      = 60, //!< backward conversions HLS to RGB/BGR with H range 0..180 if 8 bit image
+    COLOR_HLS2BGR      = 60,
     COLOR_HLS2RGB      = 61,
 
-    COLOR_BGR2HSV_FULL = 66, //!< convert RGB/BGR to HSV (hue saturation value) with H range 0..255 if 8 bit image, @ref color_convert_rgb_hsv "color conversions"
+    COLOR_BGR2HSV_FULL = 66,
     COLOR_RGB2HSV_FULL = 67,
-    COLOR_BGR2HLS_FULL = 68, //!< convert RGB/BGR to HLS (hue lightness saturation) with H range 0..255 if 8 bit image, @ref color_convert_rgb_hls "color conversions"
+    COLOR_BGR2HLS_FULL = 68,
     COLOR_RGB2HLS_FULL = 69,
 
-    COLOR_HSV2BGR_FULL = 70, //!< backward conversions HSV to RGB/BGR with H range 0..255 if 8 bit image
+    COLOR_HSV2BGR_FULL = 70,
     COLOR_HSV2RGB_FULL = 71,
-    COLOR_HLS2BGR_FULL = 72, //!< backward conversions HLS to RGB/BGR with H range 0..255 if 8 bit image
+    COLOR_HLS2BGR_FULL = 72,
     COLOR_HLS2RGB_FULL = 73,
 
     COLOR_LBGR2Lab     = 74,
@@ -1220,7 +1212,7 @@ protected:
     struct CV_EXPORTS Vertex
     {
         Vertex();
-        Vertex(Point2f pt, bool isvirtual, int firstEdge=0);
+        Vertex(Point2f pt, bool _isvirtual, int _firstEdge=0);
         bool isvirtual() const;
         bool isfree() const;
 
@@ -1276,9 +1268,9 @@ public:
 
     ![image](pics/building_lsd.png)
 
-    @param image A grayscale (CV_8UC1) input image. If only a roi needs to be selected, use:
+    @param _image A grayscale (CV_8UC1) input image. If only a roi needs to be selected, use:
     `lsd_ptr-\>detect(image(roi), lines, ...); lines += Scalar(roi.x, roi.y, roi.x, roi.y);`
-    @param lines A vector of Vec4i or Vec4f elements specifying the beginning and ending point of a line. Where
+    @param _lines A vector of Vec4i or Vec4f elements specifying the beginning and ending point of a line. Where
     Vec4i/Vec4f is (x1, y1, x2, y2), point 1 is the start, point 2 - end. Returned lines are strictly
     oriented depending on the gradient.
     @param width Vector of widths of the regions, where the lines are found. E.g. Width of line.
@@ -1290,26 +1282,26 @@ public:
     - 1 corresponds to 0.1 mean false alarms
     This vector will be calculated only when the objects type is #LSD_REFINE_ADV.
     */
-    CV_WRAP virtual void detect(InputArray image, OutputArray lines,
+    CV_WRAP virtual void detect(InputArray _image, OutputArray _lines,
                         OutputArray width = noArray(), OutputArray prec = noArray(),
                         OutputArray nfa = noArray()) = 0;
 
     /** @brief Draws the line segments on a given image.
-    @param image The image, where the lines will be drawn. Should be bigger or equal to the image,
+    @param _image The image, where the lines will be drawn. Should be bigger or equal to the image,
     where the lines were found.
     @param lines A vector of the lines that needed to be drawn.
      */
-    CV_WRAP virtual void drawSegments(InputOutputArray image, InputArray lines) = 0;
+    CV_WRAP virtual void drawSegments(InputOutputArray _image, InputArray lines) = 0;
 
     /** @brief Draws two groups of lines in blue and red, counting the non overlapping (mismatching) pixels.
 
     @param size The size of the image, where lines1 and lines2 were found.
     @param lines1 The first group of lines that needs to be drawn. It is visualized in blue color.
     @param lines2 The second group of lines. They visualized in red color.
-    @param image Optional image, where the lines will be drawn. The image should be color(3-channel)
+    @param _image Optional image, where the lines will be drawn. The image should be color(3-channel)
     in order for lines1 and lines2 to be drawn in the above mentioned colors.
      */
-    CV_WRAP virtual int compareSegments(const Size& size, InputArray lines1, InputArray lines2, InputOutputArray image = noArray()) = 0;
+    CV_WRAP virtual int compareSegments(const Size& size, InputArray lines1, InputArray lines2, InputOutputArray _image = noArray()) = 0;
 
     virtual ~LineSegmentDetector() { }
 };
@@ -1319,21 +1311,22 @@ public:
 The LineSegmentDetector algorithm is defined using the standard values. Only advanced users may want
 to edit those, as to tailor it for their own application.
 
-@param refine The way found lines will be refined, see #LineSegmentDetectorModes
-@param scale The scale of the image that will be used to find the lines. Range (0..1].
-@param sigma_scale Sigma for Gaussian filter. It is computed as sigma = sigma_scale/scale.
-@param quant Bound to the quantization error on the gradient norm.
-@param ang_th Gradient angle tolerance in degrees.
-@param log_eps Detection threshold: -log10(NFA) \> log_eps. Used only when advance refinement is chosen.
-@param density_th Minimal density of aligned region points in the enclosing rectangle.
-@param n_bins Number of bins in pseudo-ordering of gradient modulus.
+@param _refine The way found lines will be refined, see #LineSegmentDetectorModes
+@param _scale The scale of the image that will be used to find the lines. Range (0..1].
+@param _sigma_scale Sigma for Gaussian filter. It is computed as sigma = _sigma_scale/_scale.
+@param _quant Bound to the quantization error on the gradient norm.
+@param _ang_th Gradient angle tolerance in degrees.
+@param _log_eps Detection threshold: -log10(NFA) \> log_eps. Used only when advance refinement
+is chosen.
+@param _density_th Minimal density of aligned region points in the enclosing rectangle.
+@param _n_bins Number of bins in pseudo-ordering of gradient modulus.
 
 @note Implementation has been removed due original code license conflict
  */
 CV_EXPORTS_W Ptr<LineSegmentDetector> createLineSegmentDetector(
-    int refine = LSD_REFINE_STD, double scale = 0.8,
-    double sigma_scale = 0.6, double quant = 2.0, double ang_th = 22.5,
-    double log_eps = 0, double density_th = 0.7, int n_bins = 1024);
+    int _refine = LSD_REFINE_STD, double _scale = 0.8,
+    double _sigma_scale = 0.6, double _quant = 2.0, double _ang_th = 22.5,
+    double _log_eps = 0, double _density_th = 0.7, int _n_bins = 1024);
 
 //! @} imgproc_feature
 
@@ -1502,7 +1495,7 @@ The function smooths an image using the kernel:
 
 where
 
-\f[\alpha = \begin{cases} \frac{1}{\texttt{ksize.width*ksize.height}} & \texttt{when } \texttt{normalize=true}  \\1 & \texttt{otherwise}\end{cases}\f]
+\f[\alpha = \fork{\frac{1}{\texttt{ksize.width*ksize.height}}}{when \texttt{normalize=true}}{1}{otherwise}\f]
 
 Unnormalized box filter is useful for computing various integral characteristics over each pixel
 neighborhood, such as covariance matrices of image derivatives (used in dense optical flow
@@ -1532,7 +1525,7 @@ The unnormalized square box filter can be useful in computing local image statis
 variance and standard deviation around the neighborhood of a pixel.
 
 @param src input image
-@param dst output image of the same size and type as src
+@param dst output image of the same size and type as _src
 @param ddepth the output image depth (-1 to use src.depth())
 @param ksize kernel size
 @param anchor kernel anchor point. The default value of Point(-1, -1) denotes that the anchor is at the kernel
@@ -1552,7 +1545,7 @@ The function smooths an image using the kernel:
 
 \f[\texttt{K} =  \frac{1}{\texttt{ksize.width*ksize.height}} \begin{bmatrix} 1 & 1 & 1 &  \cdots & 1 & 1  \\ 1 & 1 & 1 &  \cdots & 1 & 1  \\ \hdotsfor{6} \\ 1 & 1 & 1 &  \cdots & 1 & 1  \\ \end{bmatrix}\f]
 
-The call `blur(src, dst, ksize, anchor, borderType)` is equivalent to `boxFilter(src, dst, src.type(), ksize,
+The call `blur(src, dst, ksize, anchor, borderType)` is equivalent to `boxFilter(src, dst, src.type(),
 anchor, true, borderType)`.
 
 @param src input image; it can have any number of channels, which are processed independently, but
@@ -1576,7 +1569,7 @@ according to the specified border mode.
 
 The function does actually compute correlation, not the convolution:
 
-\f[\texttt{dst} (x,y) =  \sum _{ \substack{0\leq x' < \texttt{kernel.cols}\\{0\leq y' < \texttt{kernel.rows}}}}  \texttt{kernel} (x',y')* \texttt{src} (x+x'- \texttt{anchor.x} ,y+y'- \texttt{anchor.y} )\f]
+\f[\texttt{dst} (x,y) =  \sum _{ \stackrel{0\leq x' < \texttt{kernel.cols},}{0\leq y' < \texttt{kernel.rows}} }  \texttt{kernel} (x',y')* \texttt{src} (x+x'- \texttt{anchor.x} ,y+y'- \texttt{anchor.y} )\f]
 
 That is, the kernel is not mirrored around the anchor point. If you need a real convolution, flip
 the kernel using #flip and set the new anchor to `(kernel.cols - anchor.x - 1, kernel.rows -
@@ -1906,8 +1899,8 @@ CV_EXPORTS_W void preCornerDetect( InputArray src, OutputArray dst, int ksize,
 
 /** @brief Refines the corner locations.
 
-The function iterates to find the sub-pixel accurate location of corners or radial saddle
-points as described in @cite forstner1987fast, and as shown on the figure below.
+The function iterates to find the sub-pixel accurate location of corners or radial saddle points, as
+shown on the figure below.
 
 ![image](pics/cornersubpix.png)
 
@@ -2002,38 +1995,6 @@ CV_EXPORTS_W void goodFeaturesToTrack( InputArray image, OutputArray corners,
                                      InputArray mask, int blockSize,
                                      int gradientSize, bool useHarrisDetector = false,
                                      double k = 0.04 );
-
-/** @brief Same as above, but returns also quality measure of the detected corners.
-
-@param image Input 8-bit or floating-point 32-bit, single-channel image.
-@param corners Output vector of detected corners.
-@param maxCorners Maximum number of corners to return. If there are more corners than are found,
-the strongest of them is returned. `maxCorners <= 0` implies that no limit on the maximum is set
-and all detected corners are returned.
-@param qualityLevel Parameter characterizing the minimal accepted quality of image corners. The
-parameter value is multiplied by the best corner quality measure, which is the minimal eigenvalue
-(see #cornerMinEigenVal ) or the Harris function response (see #cornerHarris ). The corners with the
-quality measure less than the product are rejected. For example, if the best corner has the
-quality measure = 1500, and the qualityLevel=0.01 , then all the corners with the quality measure
-less than 15 are rejected.
-@param minDistance Minimum possible Euclidean distance between the returned corners.
-@param mask Region of interest. If the image is not empty (it needs to have the type
-CV_8UC1 and the same size as image ), it specifies the region in which the corners are detected.
-@param cornersQuality Output vector of quality measure of the detected corners.
-@param blockSize Size of an average block for computing a derivative covariation matrix over each
-pixel neighborhood. See cornerEigenValsAndVecs .
-@param gradientSize Aperture parameter for the Sobel operator used for derivatives computation.
-See cornerEigenValsAndVecs .
-@param useHarrisDetector Parameter indicating whether to use a Harris detector (see #cornerHarris)
-or #cornerMinEigenVal.
-@param k Free parameter of the Harris detector.
- */
-CV_EXPORTS CV_WRAP_AS(goodFeaturesToTrackWithQuality) void goodFeaturesToTrack(
-        InputArray image, OutputArray corners,
-        int maxCorners, double qualityLevel, double minDistance,
-        InputArray mask, OutputArray cornersQuality, int blockSize = 3,
-        int gradientSize = 3, bool useHarrisDetector = false, double k = 0.04);
-
 /** @example samples/cpp/tutorial_code/ImgTrans/houghlines.cpp
 An example using the Hough line detector
 ![Sample input image](Hough_Lines_Tutorial_Original_Image.jpg) ![Output image](Hough_Lines_Tutorial_Result.jpg)
@@ -2106,8 +2067,8 @@ CV_EXPORTS_W void HoughLinesP( InputArray image, OutputArray lines,
 
 The function finds lines in a set of points using a modification of the Hough transform.
 @include snippets/imgproc_HoughLinesPointSet.cpp
-@param point Input vector of points. Each vector must be encoded as a Point vector \f$(x,y)\f$. Type must be CV_32FC2 or CV_32SC2.
-@param lines Output vector of found lines. Each vector is encoded as a vector<Vec3d> \f$(votes, rho, theta)\f$.
+@param _point Input vector of points. Each vector must be encoded as a Point vector \f$(x,y)\f$. Type must be CV_32FC2 or CV_32SC2.
+@param _lines Output vector of found lines. Each vector is encoded as a vector<Vec3d> \f$(votes, rho, theta)\f$.
 The larger the value of 'votes', the higher the reliability of the Hough line.
 @param lines_max Max count of hough lines.
 @param threshold Accumulator threshold parameter. Only those lines are returned that get enough
@@ -2119,7 +2080,7 @@ votes ( \f$>\texttt{threshold}\f$ )
 @param max_theta Maximum angle value of the accumulator in radians.
 @param theta_step Angle resolution of the accumulator in radians.
  */
-CV_EXPORTS_W void HoughLinesPointSet( InputArray point, OutputArray lines, int lines_max, int threshold,
+CV_EXPORTS_W void HoughLinesPointSet( InputArray _point, OutputArray _lines, int lines_max, int threshold,
                                       double min_rho, double max_rho, double rho_step,
                                       double min_theta, double max_theta, double theta_step );
 
@@ -2349,7 +2310,7 @@ CV_EXPORTS_W void warpAffine( InputArray src, OutputArray dst,
                               const Scalar& borderValue = Scalar());
 
 /** @example samples/cpp/warpPerspective_demo.cpp
-An example program shows using cv::getPerspectiveTransform and cv::warpPerspective for image warping
+An example program shows using cv::findHomography and cv::warpPerspective for image warping
 */
 
 /** @brief Applies a perspective transformation to an image.
@@ -2403,8 +2364,8 @@ CV_32FC1, or CV_32FC2. See convertMaps for details on converting a floating poin
 representation to fixed-point for speed.
 @param map2 The second map of y values having the type CV_16UC1, CV_32FC1, or none (empty map
 if map1 is (x,y) points), respectively.
-@param interpolation Interpolation method (see #InterpolationFlags). The methods #INTER_AREA
-and #INTER_LINEAR_EXACT are not supported by this function.
+@param interpolation Interpolation method (see #InterpolationFlags). The method #INTER_AREA is
+not supported by this function.
 @param borderMode Pixel extrapolation method (see #BorderTypes). When
 borderMode=#BORDER_TRANSPARENT, it means that the pixels in the destination image that
 corresponds to the "outliers" in the source image are not modified by the function.
@@ -2926,22 +2887,6 @@ An example is shown below:
  */
 CV_EXPORTS_W void createHanningWindow(OutputArray dst, Size winSize, int type);
 
-/** @brief Performs the per-element division of the first Fourier spectrum by the second Fourier spectrum.
-
-The function cv::divSpectrums performs the per-element division of the first array by the second array.
-The arrays are CCS-packed or complex matrices that are results of a real or complex Fourier transform.
-
-@param a first input array.
-@param b second input array of the same size and type as src1 .
-@param c output array of the same size and type as src1 .
-@param flags operation flags; currently, the only supported flag is cv::DFT_ROWS, which indicates that
-each row of src1 and src2 is an independent 1D Fourier spectrum. If you do not want to use this flag, then simply add a `0` as value.
-@param conjB optional flag that conjugates the second input array before the multiplication (true)
-or not (false).
-*/
-CV_EXPORTS_W void divSpectrums(InputArray a, InputArray b, OutputArray c,
-                               int flags, bool conjB = false);
-
 //! @} imgproc_motion
 
 //! @addtogroup imgproc_misc
@@ -3279,9 +3224,6 @@ CV_EXPORTS_AS(EMD) float wrapperEMD( InputArray signature1, InputArray signature
 
 //! @} imgproc_hist
 
-//! @addtogroup imgproc_segmentation
-//! @{
-
 /** @example samples/cpp/watershed.cpp
 An example using the watershed algorithm
 */
@@ -3309,10 +3251,10 @@ function.
 size as image .
 
 @sa findContours
+
+@ingroup imgproc_misc
  */
 CV_EXPORTS_W void watershed( InputArray image, InputOutputArray markers );
-
-//! @} imgproc_segmentation
 
 //! @addtogroup imgproc_filter
 //! @{
@@ -3359,7 +3301,7 @@ CV_EXPORTS_W void pyrMeanShiftFiltering( InputArray src, OutputArray dst,
 
 //! @}
 
-//! @addtogroup imgproc_segmentation
+//! @addtogroup imgproc_misc
 //! @{
 
 /** @example samples/cpp/grabcut.cpp
@@ -3388,11 +3330,6 @@ mode==GC_EVAL .
 CV_EXPORTS_W void grabCut( InputArray img, InputOutputArray mask, Rect rect,
                            InputOutputArray bgdModel, InputOutputArray fgdModel,
                            int iterCount, int mode = GC_EVAL );
-
-//! @} imgproc_segmentation
-
-//! @addtogroup imgproc_misc
-//! @{
 
 /** @example samples/cpp/distrans.cpp
 An example on using the distance transform
@@ -3431,7 +3368,7 @@ but also identifies the nearest connected component consisting of zero pixels
 (labelType==#DIST_LABEL_CCOMP) or the nearest zero pixel (labelType==#DIST_LABEL_PIXEL). Index of the
 component/pixel is stored in `labels(x, y)`. When labelType==#DIST_LABEL_CCOMP, the function
 automatically finds connected components of zero pixels in the input image and marks them with
-distinct labels. When labelType==#DIST_LABEL_PIXEL, the function scans through the input image and
+distinct labels. When labelType==#DIST_LABEL_CCOMP, the function scans through the input image and
 marks all the zero pixels with distinct labels.
 
 In this mode, the complexity is still linear. That is, the function provides a very fast way to
@@ -3565,7 +3502,7 @@ CV_EXPORTS_W int floodFill( InputOutputArray image, InputOutputArray mask,
 //! @param weights1 It has a type of CV_32FC1 and the same size with src1.
 //! @param weights2 It has a type of CV_32FC1 and the same size with src1.
 //! @param dst It is created if it does not have the same size and type with src1.
-CV_EXPORTS_W void blendLinear(InputArray src1, InputArray src2, InputArray weights1, InputArray weights2, OutputArray dst);
+CV_EXPORTS void blendLinear(InputArray src1, InputArray src2, InputArray weights1, InputArray weights2, OutputArray dst);
 
 //! @} imgproc_misc
 
@@ -3721,43 +3658,14 @@ CV_EXPORTS_W void HuMoments( const Moments& m, OutputArray hu );
 
 //! type of the template matching operation
 enum TemplateMatchModes {
-    TM_SQDIFF        = 0, /*!< \f[R(x,y)= \sum _{x',y'} (T(x',y')-I(x+x',y+y'))^2\f]
-                               with mask:
-                               \f[R(x,y)= \sum _{x',y'} \left( (T(x',y')-I(x+x',y+y')) \cdot
-                                  M(x',y') \right)^2\f] */
-    TM_SQDIFF_NORMED = 1, /*!< \f[R(x,y)= \frac{\sum_{x',y'} (T(x',y')-I(x+x',y+y'))^2}{\sqrt{\sum_{
-                                  x',y'}T(x',y')^2 \cdot \sum_{x',y'} I(x+x',y+y')^2}}\f]
-                               with mask:
-                               \f[R(x,y)= \frac{\sum _{x',y'} \left( (T(x',y')-I(x+x',y+y')) \cdot
-                                  M(x',y') \right)^2}{\sqrt{\sum_{x',y'} \left( T(x',y') \cdot
-                                  M(x',y') \right)^2 \cdot \sum_{x',y'} \left( I(x+x',y+y') \cdot
-                                  M(x',y') \right)^2}}\f] */
-    TM_CCORR         = 2, /*!< \f[R(x,y)= \sum _{x',y'} (T(x',y') \cdot I(x+x',y+y'))\f]
-                               with mask:
-                               \f[R(x,y)= \sum _{x',y'} (T(x',y') \cdot I(x+x',y+y') \cdot M(x',y')
-                                  ^2)\f] */
-    TM_CCORR_NORMED  = 3, /*!< \f[R(x,y)= \frac{\sum_{x',y'} (T(x',y') \cdot I(x+x',y+y'))}{\sqrt{
-                                  \sum_{x',y'}T(x',y')^2 \cdot \sum_{x',y'} I(x+x',y+y')^2}}\f]
-                               with mask:
-                               \f[R(x,y)= \frac{\sum_{x',y'} (T(x',y') \cdot I(x+x',y+y') \cdot
-                                  M(x',y')^2)}{\sqrt{\sum_{x',y'} \left( T(x',y') \cdot M(x',y')
-                                  \right)^2 \cdot \sum_{x',y'} \left( I(x+x',y+y') \cdot M(x',y')
-                                  \right)^2}}\f] */
-    TM_CCOEFF        = 4, /*!< \f[R(x,y)= \sum _{x',y'} (T'(x',y') \cdot I'(x+x',y+y'))\f]
-                               where
-                               \f[\begin{array}{l} T'(x',y')=T(x',y') - 1/(w \cdot h) \cdot \sum _{
-                                  x'',y''} T(x'',y'') \\ I'(x+x',y+y')=I(x+x',y+y') - 1/(w \cdot h)
-                                  \cdot \sum _{x'',y''} I(x+x'',y+y'') \end{array}\f]
-                               with mask:
-                               \f[\begin{array}{l} T'(x',y')=M(x',y') \cdot \left( T(x',y') -
-                                  \frac{1}{\sum _{x'',y''} M(x'',y'')} \cdot \sum _{x'',y''}
-                                  (T(x'',y'') \cdot M(x'',y'')) \right) \\ I'(x+x',y+y')=M(x',y')
-                                  \cdot \left( I(x+x',y+y') - \frac{1}{\sum _{x'',y''} M(x'',y'')}
-                                  \cdot \sum _{x'',y''} (I(x+x'',y+y'') \cdot M(x'',y'')) \right)
-                                  \end{array} \f] */
-    TM_CCOEFF_NORMED = 5  /*!< \f[R(x,y)= \frac{ \sum_{x',y'} (T'(x',y') \cdot I'(x+x',y+y')) }{
-                                  \sqrt{\sum_{x',y'}T'(x',y')^2 \cdot \sum_{x',y'} I'(x+x',y+y')^2}
-                                  }\f] */
+    TM_SQDIFF        = 0, //!< \f[R(x,y)= \sum _{x',y'} (T(x',y')-I(x+x',y+y'))^2\f]
+    TM_SQDIFF_NORMED = 1, //!< \f[R(x,y)= \frac{\sum_{x',y'} (T(x',y')-I(x+x',y+y'))^2}{\sqrt{\sum_{x',y'}T(x',y')^2 \cdot \sum_{x',y'} I(x+x',y+y')^2}}\f]
+    TM_CCORR         = 2, //!< \f[R(x,y)= \sum _{x',y'} (T(x',y')  \cdot I(x+x',y+y'))\f]
+    TM_CCORR_NORMED  = 3, //!< \f[R(x,y)= \frac{\sum_{x',y'} (T(x',y') \cdot I(x+x',y+y'))}{\sqrt{\sum_{x',y'}T(x',y')^2 \cdot \sum_{x',y'} I(x+x',y+y')^2}}\f]
+    TM_CCOEFF        = 4, //!< \f[R(x,y)= \sum _{x',y'} (T'(x',y')  \cdot I'(x+x',y+y'))\f]
+                          //!< where
+                          //!< \f[\begin{array}{l} T'(x',y')=T(x',y') - 1/(w  \cdot h)  \cdot \sum _{x'',y''} T(x'',y'') \\ I'(x+x',y+y')=I(x+x',y+y') - 1/(w  \cdot h)  \cdot \sum _{x'',y''} I(x+x'',y+y'') \end{array}\f]
+    TM_CCOEFF_NORMED = 5  //!< \f[R(x,y)= \frac{ \sum_{x',y'} (T'(x',y') \cdot I'(x+x',y+y')) }{ \sqrt{\sum_{x',y'}T'(x',y')^2 \cdot \sum_{x',y'} I'(x+x',y+y')^2} }\f]
 };
 
 /** @example samples/cpp/tutorial_code/Histograms_Matching/MatchTemplate_Demo.cpp
@@ -3767,10 +3675,9 @@ An example using Template Matching algorithm
 /** @brief Compares a template against overlapped image regions.
 
 The function slides through image , compares the overlapped patches of size \f$w \times h\f$ against
-templ using the specified method and stores the comparison results in result . #TemplateMatchModes
-describes the formulae for the available comparison methods ( \f$I\f$ denotes image, \f$T\f$
-template, \f$R\f$ result, \f$M\f$ the optional mask ). The summation is done over template and/or
-the image patch: \f$x' = 0...w-1, y' = 0...h-1\f$
+templ using the specified method and stores the comparison results in result . Here are the formulae
+for the available comparison methods ( \f$I\f$ denotes image, \f$T\f$ template, \f$R\f$ result ). The summation
+is done over template and/or the image patch: \f$x' = 0...w-1, y' = 0...h-1\f$
 
 After the function finishes the comparison, the best matches can be found as global minimums (when
 #TM_SQDIFF was used) or maximums (when #TM_CCORR or #TM_CCOEFF was used) using the
@@ -3785,12 +3692,8 @@ data type.
 @param result Map of comparison results. It must be single-channel 32-bit floating-point. If image
 is \f$W \times H\f$ and templ is \f$w \times h\f$ , then result is \f$(W-w+1) \times (H-h+1)\f$ .
 @param method Parameter specifying the comparison method, see #TemplateMatchModes
-@param mask Optional mask. It must have the same size as templ. It must either have the same number
-            of channels as template or only one channel, which is then used for all template and
-            image channels. If the data type is #CV_8U, the mask is interpreted as a binary mask,
-            meaning only elements where mask is nonzero are used and are kept unchanged independent
-            of the actual mask value (weight equals 1). For data tpye #CV_32F, the mask values are
-            used as weights. The exact formulas are documented in #TemplateMatchModes.
+@param mask Mask of searched template. It must have the same datatype and size with templ. It is
+not set by default. Currently, only the #TM_SQDIFF and #TM_CCORR_NORMED methods are supported.
  */
 CV_EXPORTS_W void matchTemplate( InputArray image, InputArray templ,
                                  OutputArray result, int method, InputArray mask = noArray() );
@@ -3810,7 +3713,7 @@ image with 4 or 8 way connectivity - returns N, the total number of labels [0, N
 represents the background label. ltype specifies the output label image type, an important
 consideration based on the total number of labels or alternatively the total number of pixels in
 the source image. ccltype specifies the connected components labeling algorithm to use, currently
-Grana (BBDT) and Wu's (SAUF) @cite Wu2009 algorithms are supported, see the #ConnectedComponentsAlgorithmsTypes
+Grana (BBDT) and Wu's (SAUF) algorithms are supported, see the #ConnectedComponentsAlgorithmsTypes
 for details. Note that SAUF algorithm forces a row major ordering of labels while BBDT does not.
 This function uses parallel version of both Grana and Wu's algorithms if at least one allowed
 parallel framework is enabled and if the rows of the image are at least twice the number returned by #getNumberOfCPUs.
@@ -3842,16 +3745,16 @@ image with 4 or 8 way connectivity - returns N, the total number of labels [0, N
 represents the background label. ltype specifies the output label image type, an important
 consideration based on the total number of labels or alternatively the total number of pixels in
 the source image. ccltype specifies the connected components labeling algorithm to use, currently
-Grana's (BBDT) and Wu's (SAUF) @cite Wu2009 algorithms are supported, see the #ConnectedComponentsAlgorithmsTypes
+Grana's (BBDT) and Wu's (SAUF) algorithms are supported, see the #ConnectedComponentsAlgorithmsTypes
 for details. Note that SAUF algorithm forces a row major ordering of labels while BBDT does not.
 This function uses parallel version of both Grana and Wu's algorithms (statistics included) if at least one allowed
 parallel framework is enabled and if the rows of the image are at least twice the number returned by #getNumberOfCPUs.
 
 @param image the 8-bit single-channel image to be labeled
 @param labels destination labeled image
-@param stats statistics output for each label, including the background label.
-Statistics are accessed via stats(label, COLUMN) where COLUMN is one of
-#ConnectedComponentsTypes, selecting the statistic. The data type is CV_32S.
+@param stats statistics output for each label, including the background label, see below for
+available statistics. Statistics are accessed via stats(label, COLUMN) where COLUMN is one of
+#ConnectedComponentsTypes. The data type is CV_32S.
 @param centroids centroid output for each label, including the background label. Centroids are
 accessed via centroids(label, 0) for x and centroids(label, 1) for y. The data type CV_64F.
 @param connectivity 8 or 4 for 8-way or 4-way connectivity respectively
@@ -3865,9 +3768,9 @@ CV_EXPORTS_AS(connectedComponentsWithStatsWithAlgorithm) int connectedComponents
 /** @overload
 @param image the 8-bit single-channel image to be labeled
 @param labels destination labeled image
-@param stats statistics output for each label, including the background label.
-Statistics are accessed via stats(label, COLUMN) where COLUMN is one of
-#ConnectedComponentsTypes, selecting the statistic. The data type is CV_32S.
+@param stats statistics output for each label, including the background label, see below for
+available statistics. Statistics are accessed via stats(label, COLUMN) where COLUMN is one of
+#ConnectedComponentsTypes. The data type is CV_32S.
 @param centroids centroid output for each label, including the background label. Centroids are
 accessed via centroids(label, 0) for x and centroids(label, 1) for y. The data type CV_64F.
 @param connectivity 8 or 4 for 8-way or 4-way connectivity respectively
@@ -4124,9 +4027,9 @@ Examples of how intersectConvexConvex works
 
 /** @brief Finds intersection of two convex polygons
 
-@param p1 First polygon
-@param p2 Second polygon
-@param p12 Output polygon describing the intersecting area
+@param _p1 First polygon
+@param _p2 Second polygon
+@param _p12 Output polygon describing the intersecting area
 @param handleNested When true, an intersection is found if one of the polygons is fully enclosed in the other.
 When false, no intersection is found. If the polygons share a side or the vertex of one polygon lies on an edge
 of the other, they are not considered nested and an intersection will be found regardless of the value of handleNested.
@@ -4135,8 +4038,8 @@ of the other, they are not considered nested and an intersection will be found r
 
 @note intersectConvexConvex doesn't confirm that both polygons are convex and will return invalid results if they aren't.
  */
-CV_EXPORTS_W float intersectConvexConvex( InputArray p1, InputArray p2,
-                                          OutputArray p12, bool handleNested = true );
+CV_EXPORTS_W float intersectConvexConvex( InputArray _p1, InputArray _p2,
+                                          OutputArray _p12, bool handleNested = true );
 
 /** @example samples/cpp/fitellipse.cpp
 An example using the fitEllipse technique
@@ -4344,8 +4247,7 @@ enum ColormapTypes
     COLORMAP_CIVIDIS = 17, //!< ![cividis](pics/colormaps/colorscale_cividis.jpg)
     COLORMAP_TWILIGHT = 18, //!< ![twilight](pics/colormaps/colorscale_twilight.jpg)
     COLORMAP_TWILIGHT_SHIFTED = 19, //!< ![twilight shifted](pics/colormaps/colorscale_twilight_shifted.jpg)
-    COLORMAP_TURBO = 20, //!< ![turbo](pics/colormaps/colorscale_turbo.jpg)
-    COLORMAP_DEEPGREEN = 21  //!< ![deepgreen](pics/colormaps/colorscale_deepgreen.jpg)
+    COLORMAP_TURBO = 20 //!< ![turbo](pics/colormaps/colorscale_turbo.jpg)
 };
 
 /** @example samples/cpp/falsecolor.cpp
@@ -4823,39 +4725,10 @@ public:
     the line is 8-connected or 4-connected
     If leftToRight=true, then the iteration is always done
     from the left-most point to the right most,
-    not to depend on the ordering of pt1 and pt2 parameters;
+    not to depend on the ordering of pt1 and pt2 parameters
     */
     LineIterator( const Mat& img, Point pt1, Point pt2,
-                  int connectivity = 8, bool leftToRight = false )
-    {
-        init(&img, Rect(0, 0, img.cols, img.rows), pt1, pt2, connectivity, leftToRight);
-        ptmode = false;
-    }
-    LineIterator( Point pt1, Point pt2,
-                  int connectivity = 8, bool leftToRight = false )
-    {
-        init(0, Rect(std::min(pt1.x, pt2.x),
-                     std::min(pt1.y, pt2.y),
-                     std::max(pt1.x, pt2.x) - std::min(pt1.x, pt2.x) + 1,
-                     std::max(pt1.y, pt2.y) - std::min(pt1.y, pt2.y) + 1),
-             pt1, pt2, connectivity, leftToRight);
-        ptmode = true;
-    }
-    LineIterator( Size boundingAreaSize, Point pt1, Point pt2,
-                  int connectivity = 8, bool leftToRight = false )
-    {
-        init(0, Rect(0, 0, boundingAreaSize.width, boundingAreaSize.height),
-             pt1, pt2, connectivity, leftToRight);
-        ptmode = true;
-    }
-    LineIterator( Rect boundingAreaRect, Point pt1, Point pt2,
-                  int connectivity = 8, bool leftToRight = false )
-    {
-        init(0, boundingAreaRect, pt1, pt2, connectivity, leftToRight);
-        ptmode = true;
-    }
-    void init(const Mat* img, Rect boundingAreaRect, Point pt1, Point pt2, int connectivity, bool leftToRight);
-
+                  int connectivity = 8, bool leftToRight = false );
     /** @brief returns pointer to the current pixel
     */
     uchar* operator *();
@@ -4875,9 +4748,6 @@ public:
     int err, count;
     int minusDelta, plusDelta;
     int minusStep, plusStep;
-    int minusShift, plusShift;
-    Point p;
-    bool ptmode;
 };
 
 //! @cond IGNORED
@@ -4887,7 +4757,7 @@ public:
 inline
 uchar* LineIterator::operator *()
 {
-    return ptmode ? 0 : ptr;
+    return ptr;
 }
 
 inline
@@ -4895,15 +4765,7 @@ LineIterator& LineIterator::operator ++()
 {
     int mask = err < 0 ? -1 : 0;
     err += minusDelta + (plusDelta & mask);
-    if(!ptmode)
-    {
-        ptr += minusStep + (plusStep & mask);
-    }
-    else
-    {
-        p.x += minusShift + (plusShift & mask);
-        p.y += minusStep + (plusStep & mask);
-    }
+    ptr += minusStep + (plusStep & mask);
     return *this;
 }
 
@@ -4918,13 +4780,9 @@ LineIterator LineIterator::operator ++(int)
 inline
 Point LineIterator::pos() const
 {
-    if(!ptmode)
-    {
-        size_t offset = (size_t)(ptr - ptr0);
-        int y = (int)(offset/step);
-        int x = (int)((offset - (size_t)y*step)/elemSize);
-        return Point(x, y);
-    }
+    Point p;
+    p.y = (int)((ptr - ptr0)/step);
+    p.x = (int)(((ptr - ptr0) - p.y*step)/elemSize);
     return p;
 }
 
@@ -4935,9 +4793,5 @@ Point LineIterator::pos() const
 //! @} imgproc
 
 } // cv
-
-
-#include "./imgproc/segmentation.hpp"
-
 
 #endif

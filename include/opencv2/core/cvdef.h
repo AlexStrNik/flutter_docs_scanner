@@ -45,8 +45,6 @@
 #ifndef OPENCV_CORE_CVDEF_H
 #define OPENCV_CORE_CVDEF_H
 
-#include "opencv2/core/version.hpp"
-
 //! @addtogroup core_utils
 //! @{
 
@@ -88,24 +86,12 @@ namespace cv { namespace debug_build_guard { } using namespace debug_build_guard
 #define __CV_VA_NUM_ARGS_HELPER(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, N, ...) N
 #define __CV_VA_NUM_ARGS(...) __CV_EXPAND(__CV_VA_NUM_ARGS_HELPER(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
 
-#ifdef CV_Func
-// keep current value (through OpenCV port file)
-#elif defined __GNUC__ || (defined (__cpluscplus) && (__cpluscplus >= 201103))
-#define CV_Func __func__
-#elif defined __clang__ && (__clang_minor__ * 100 + __clang_major__ >= 305)
-#define CV_Func __func__
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION >= 199901)
+#if defined __GNUC__
 #define CV_Func __func__
 #elif defined _MSC_VER
 #define CV_Func __FUNCTION__
-#elif defined(__INTEL_COMPILER) && (_INTEL_COMPILER >= 600)
-#define CV_Func __FUNCTION__
-#elif defined __IBMCPP__ && __IBMCPP__ >=500
-#define CV_Func __FUNCTION__
-#elif defined __BORLAND__ && (__BORLANDC__ >= 0x550)
-#define CV_Func __FUNC__
 #else
-#define CV_Func "<unknown>"
+#define CV_Func ""
 #endif
 
 //! @cond IGNORED
@@ -271,12 +257,8 @@ namespace cv {
 
 #define CV_CPU_MSA              150
 
-#define CV_CPU_RISCVV           170
-
 #define CV_CPU_VSX              200
 #define CV_CPU_VSX3             201
-
-#define CV_CPU_RVV              210
 
 // CPU features groups
 #define CV_CPU_AVX512_SKX       256
@@ -327,12 +309,8 @@ enum CpuFeatures {
 
     CPU_MSA             = 150,
 
-    CPU_RISCVV          = 170,
-
     CPU_VSX             = 200,
     CPU_VSX3            = 201,
-
-    CPU_RVV             = 210,
 
     CPU_AVX512_SKX      = 256, //!< Skylake-X with AVX-512F/CD/BW/DQ/VL
     CPU_AVX512_COMMON   = 257, //!< Common instructions AVX-512F/CD for all CPUs that support AVX-512
@@ -394,9 +372,7 @@ typedef union Cv64suf
 }
 Cv64suf;
 
-#ifndef OPENCV_ABI_COMPATIBILITY
 #define OPENCV_ABI_COMPATIBILITY 400
-#endif
 
 #ifdef __OPENCV_BUILD
 #  define DISABLE_OPENCV_3_COMPATIBILITY
@@ -684,7 +660,7 @@ __CV_ENUM_FLAGS_BITWISE_XOR_EQ   (EnumType, EnumType)                           
 #  define CV_XADD(addr, delta) (int)_InterlockedExchangeAdd((long volatile*)addr, delta)
 #else
   #ifdef OPENCV_FORCE_UNSAFE_XADD
-    CV_INLINE int CV_XADD(int* addr, int delta) { int tmp = *addr; *addr += delta; return tmp; }
+    CV_INLINE CV_XADD(int* addr, int delta) { int tmp = *addr; *addr += delta; return tmp; }
   #else
     #error "OpenCV: can't define safe CV_XADD macro for current platform (unsupported). Define CV_XADD macro through custom port header (see OPENCV_INCLUDE_PORT_FILE)"
   #endif
@@ -852,7 +828,7 @@ protected:
     float16_t() : w(0) {}
     explicit float16_t(float x)
     {
-    #if CV_FP16
+    #if CV_AVX2
         __m128 v = _mm_load_ss(&x);
         w = (ushort)_mm_cvtsi128_si32(_mm_cvtps_ph(v, 0));
     #else
@@ -883,7 +859,7 @@ protected:
 
     operator float() const
     {
-    #if CV_FP16
+    #if CV_AVX2
         float f;
         _mm_store_ss(&f, _mm_cvtph_ps(_mm_cvtsi32_si128(w)));
         return f;
