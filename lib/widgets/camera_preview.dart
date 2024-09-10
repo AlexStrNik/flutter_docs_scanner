@@ -46,6 +46,7 @@ class _ScannerPreviewState extends State<ScannerPreview> {
       cameras[0],
       ResolutionPreset.high,
       imageFormatGroup: ImageFormatGroup.bgra8888,
+      enableAudio: false,
     );
     await _controller!.initialize();
     _controller!.startImageStream(onFrameAvailable);
