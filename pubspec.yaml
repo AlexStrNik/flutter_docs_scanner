@@ -1,6 +1,6 @@
 name: flutter_docs_scanner
 description: "A Flutter plugin for iOS and Android allowing to scan documents using your camera."
-version: 0.0.3
+version: 0.0.4
 repository: https://github.com/AlexStrNik/flutter_docs_scanner
 homepage: https://github.com/AlexStrNik/flutter_docs_scanner
 
