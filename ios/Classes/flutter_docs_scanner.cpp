@@ -9,7 +9,24 @@ using namespace std;
 
 EXPORT Scanner::Rectangle *processFrame(Scanner *scanner, flutter::ImageForDetect *frame) {
     auto img = flutter::prepareMat(frame);
-    auto rect = scanner->detectDoc(img);
+    auto corners = scanner->detectDoc(img);
+    
+    Scanner::Rectangle* rect = nullptr;
+    
+    if (!corners.empty()) {
+        std::vector<Scanner::Point> normalized_points;
+        for (const auto& point : corners) {
+            normalized_points.emplace_back(
+                Scanner::Point(
+                    float(point.x) / float(img.cols),
+                    float(point.y) / float(img.rows)
+                )
+            );
+        }
+        
+        rect = new Scanner::Rectangle(normalized_points[0], normalized_points[1],
+                                           normalized_points[2], normalized_points[3]);
+    }
     
     return scanner->filterResults(rect);
 }
@@ -108,70 +125,8 @@ vector<cv::Point2f> convert(vector<cv::Point> int_points) {
     return float_points;
 }
 
-void improve_image(Mat srcArry, Mat &dstArry) {
-//    cv::cvtColor(srcArry, dstArry, cv::COLOR_BGR2YCrCb);
-//
-//    std::vector<cv::Mat> channels;
-//    cv::split(dstArry, channels);
-//
-//    cv::equalizeHist(channels[0], channels[0]);
-//
-//    cv::merge(channels, dstArry);
-//
-//    cv::Mat result;
-//    cv::cvtColor(dstArry, result, cv::COLOR_YCrCb2BGR);
-    dstArry = srcArry;
-}
-
 cv::Mat Scanner::processDoc(const cv::Mat &img) {
-    Mat gray;
-    cvtColor(img, gray, COLOR_BGR2GRAY);
-
-    Mat thresh;
-    adaptiveThreshold(gray, thresh, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 11, 2);
-
-    GaussianBlur(thresh, thresh, Size(5, 5), 0);
-
-    Mat edges;
-    Canny(thresh, edges, 50, 150);
-
-    vector<vector<cv::Point>> contours;
-    findContours(edges, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-
-    if (contours.empty()) {
-        return img;
-    }
-
-    vector<cv::Point> largest_contour;
-    double max_area = 0;
-    for (const auto& contour : contours) {
-        double area = contourArea(contour);
-        if (area > max_area) {
-            max_area = area;
-            largest_contour = contour;
-        }
-    }
-
-    vector<cv::Point> approx;
-    double peri = arcLength(largest_contour, true);
-    approxPolyDP(largest_contour, approx, 0.02 * peri, true);
-
-    if (approx.size() != 4) {
-        return img;
-    }
-
-    if (max_area < 1000) {
-        return img;
-    }
-
-    Rect bounding_box = boundingRect(approx);
-    float aspect_ratio = static_cast<float>(bounding_box.width) / bounding_box.height;
-    if (aspect_ratio < 0.5 || aspect_ratio > 2.0) {
-        return img;
-    }
-    
-    // Sorting the corners and converting them to desired shape.
-    auto corners = order_points(approx);
+    auto corners = detectDoc(img);
     
     if (corners.size() != 4) {
         return img;
@@ -201,77 +156,89 @@ cv::Mat Scanner::processDoc(const cv::Mat &img) {
     return f_img;
 }
 
-Scanner::Rectangle* Scanner::detectDoc(const Mat& frame) {
+vector<cv::Point> Scanner::detectDoc(const cv::Mat& frame) {
+    cv::Mat gray1, contrast_enhanced_image, edges;
+
+    // Enhance contrast using CLAHE
+    cv::cvtColor(frame, gray1, cv::COLOR_BGR2GRAY);
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+    clahe->setClipLimit(4);
+    clahe->apply(gray1, gray1);
+
+    // Apply edge-preserving filter
     Mat gray;
-    cvtColor(frame, gray, COLOR_BGR2GRAY);
+    cv::bilateralFilter(gray1, gray, 9, 75, 75);
 
-    Mat thresh;
-    adaptiveThreshold(gray, thresh, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 11, 2);
+    // Edge detection with dynamic thresholds
+    cv::Scalar mean, stddev;
+    cv::meanStdDev(gray, mean, stddev);
+    double lower_thresh = std::max(0.0, (1.0 - 0.33) * mean[0]);
+    double upper_thresh = std::min(255.0, (1.0 + 0.33) * mean[0]);
+    cv::Canny(gray, edges, lower_thresh, upper_thresh);
 
-    GaussianBlur(thresh, thresh, Size(5, 5), 0);
+    // Morphological operations
+    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+    cv::morphologyEx(edges, edges, cv::MORPH_CLOSE, kernel);
 
-    Mat edges;
-    Canny(thresh, edges, 50, 150);
-
-    vector<vector<cv::Point>> contours;
-    findContours(edges, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+    // Find contours
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(edges, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
     if (contours.empty()) {
-        return nullptr;
+        return vector<cv::Point>();
     }
 
-    vector<cv::Point> largest_contour;
-    double max_area = 0;
-    for (const auto& contour : contours) {
-        double area = contourArea(contour);
-        if (area > max_area) {
-            max_area = area;
-            largest_contour = contour;
+    // Sort contours by area
+    std::sort(contours.begin(), contours.end(), [](const std::vector<cv::Point>& c1, const std::vector<cv::Point>& c2) {
+        return cv::contourArea(c1, false) > cv::contourArea(c2, false);
+    });
+
+    // Iterate over top contours
+    for (size_t i = 0; i < std::min(contours.size(), size_t(5)); ++i) {
+        std::vector<cv::Point> approx;
+        double peri = cv::arcLength(contours[i], true);
+        cv::approxPolyDP(contours[i], approx, 0.02 * peri, true);
+
+        if (approx.size() == 4 && cv::isContourConvex(approx)) {
+            double area = cv::contourArea(approx);
+            if (area < 1000) continue;
+
+            // Check aspect ratio
+            cv::Rect bounding_box = cv::boundingRect(approx);
+            double current_ratio = static_cast<double>(bounding_box.width) / bounding_box.height;
+            double expected_ratio = 0.7071;
+            if (current_ratio < expected_ratio * 0.8 || current_ratio > expected_ratio * 1.2) {
+                continue;
+            }
+
+//            // Check angles
+//            bool angles_close_to_90 = true;
+//            for (int j = 0; j < 4; j++) {
+//                cv::Point2f p1 = approx[j];
+//                cv::Point2f p2 = approx[(j + 1) % 4];
+//                cv::Point2f p3 = approx[(j + 2) % 4];
+//
+//                cv::Point2f v1 = p1 - p2;
+//                cv::Point2f v2 = p3 - p2;
+//
+//                double angle = std::fabs(atan2(v2.y, v2.x) - atan2(v1.y, v1.x)) * 180.0 / CV_PI;
+//                if (angle < 80 || angle > 100) {
+//                    angles_close_to_90 = false;
+//                    break;
+//                }
+//            }
+//            if (!angles_close_to_90) {
+//                continue;
+//            }
+
+            // Order points and normalize
+            auto corners = order_points(approx);
+            return corners;
         }
     }
-    
-    if (largest_contour.empty()) {
-        return nullptr;
-    }
-
-    vector<cv::Point> approx;
-    double peri = arcLength(largest_contour, true);
-    approxPolyDP(largest_contour, approx, 0.05 * peri, true);
-
-    if (approx.size() != 4) {
-        return nullptr;
-    }
-
-    if (max_area < 1000) {
-        return nullptr;
-    }
-
-    Rect bounding_box = boundingRect(approx);
-    float aspect_ratio = static_cast<float>(bounding_box.width) / bounding_box.height;
-    if (aspect_ratio < 0.5 || aspect_ratio > 2.0) {
-        return nullptr;
-    }
-
-    auto corners = order_points(approx);
-
-    vector<Point> normalized_points;
-    normalized_points.reserve(4);
-    for (const auto& point : corners) {
-        normalized_points.emplace_back(
-            Point(
-                float(point.x) / float(frame.cols),
-                float(point.y) / float(frame.rows)
-            )
-        );
-    }
-
-    if (normalized_points.size() != 4) {
-        return nullptr;
-    }
-
-    return new Rectangle(normalized_points[0], normalized_points[1], 
-                         normalized_points[2], normalized_points[3]);
+    return vector<cv::Point>();
 }
+
 
 Scanner::Rectangle* Scanner::filterResults(Rectangle* new_result) {
     if (new_result == nullptr) {

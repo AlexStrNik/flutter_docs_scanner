@@ -23,7 +23,7 @@ public:
 
     Scanner();
 
-    Scanner::Rectangle* detectDoc(const cv::Mat &frame);
+    std::vector<cv::Point> detectDoc(const cv::Mat &frame);
 
     cv::Mat processDoc(const cv::Mat &image);
     
